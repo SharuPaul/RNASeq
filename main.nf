@@ -5,6 +5,7 @@
  * Desc: NextFlow dsl2 pipeline for RNASeq analysis
  */
 
+// Help statement
 def helpMsg() {
   log.info """\
           RNA-SEQ PIPELINE
@@ -51,7 +52,6 @@ if(params.help){
 include { rnaseq } from './Workflows/rnaseq.nf'
 
 // Workflow
-
 workflow {
 
  rnaseq()

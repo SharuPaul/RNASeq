@@ -8,7 +8,7 @@ include { hisat_index; hisat; samtools } from '../modules/hisat.nf'
 include { featureCounts_gene; featureCounts_mRNA; featureCounts_geneMult } from '../modules/counts.nf'
 
 
-//  Workflow
+// Complete RNASeq Workflow
 
 workflow rnaseq {
 
