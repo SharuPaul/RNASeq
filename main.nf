@@ -18,7 +18,7 @@ def helpMsg() {
 
    Input data:   [Will look for data in directory specified in --indir by default, one or more of following 
                need to be specified by glob pattern (e.g. --reads "rawReads/*_{R1,R2}.fastq.gz") if in a 
-               different folder, a subfolder, or in case of error in finding the data (glob pattern mismatch)]
+               different directory, a subdirectory, or in case of error in finding the data (glob pattern mismatch)]
 
     --reads                 Paired-end reads
     --cdna                  Reference cDNA file
@@ -26,7 +26,7 @@ def helpMsg() {
     --gff                   Reference genome GFF file
    
    Optional Arguments:    [default value]
-    --threads               Number of threads [36]
+    --threads               Number of threads [16]
     --outdir                Output directory name [RNAseq_Results]
     --trim_args             Additional arguments for trim_galore ["--fastqc"]
     --salmonindex           Path to salmon index. Provide directory containing prebuilt salmon index files 
