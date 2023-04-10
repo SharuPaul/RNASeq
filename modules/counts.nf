@@ -42,7 +42,7 @@ process featureCounts_mRNA {
 
 process featureCounts_geneMult {
     tag "${read_bam.simpleName}"
-    label 'counts_Multimatch'
+    label 'counts_Multimap'
  
     input:
      tuple path(read_bam), path(genome_gff)

@@ -1,5 +1,5 @@
 # RNASeq
-A pipeline for RNASeq analysis on Paired-end reads implemented with NextFlow dsl2.
+A pipeline for RNASeq analysis on paired-end reads implemented with NextFlow dsl2.
 
 
 ## Workflow
@@ -8,7 +8,7 @@ A pipeline for RNASeq analysis on Paired-end reads implemented with NextFlow dsl
 3. Salmon - Index building and quantification
 4. Hisat2 - Index building and Alignment
 5. Samtools - Sam to Bam conversion, generate stats report with flagstat
-6. FeatureCounts - Counts Genes, mRNAs, MultiMapping Genes
+6. FeatureCounts - Counts Genes, mRNAs, Genes with MultiMapping reads
 7. Multiqc - Generate a multiqc report
 
 
