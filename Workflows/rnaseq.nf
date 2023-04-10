@@ -14,11 +14,11 @@ workflow rnaseq {
 
 if (!params.reads) { reads = "${params.indir}/*_{1,2}.{fq,fastq,fq.gz,fastq.gz}" 
   } else { reads = ${params.reads} } 
-if (!params.cdna) { cdna = "${params.indir}/*rna.fna.gz" 
+if (!params.cdna) { cdna = "${params.indir}/*rna.{fna,fna.gz}" 
   } else { cdna = ${params.cdna} }
-if (!params.fasta) { fasta = "${params.indir}/*.{fa,fasta,fna}" 
+if (!params.fasta) { fasta = "${params.indir}/*genomic.{fa,fasta,fna,fna.gz}" 
   } else { fasta = ${params.fasta} }
-if (!params.gff) { gff = "${params.indir}/*.gff"
+if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
   } else { gff = ${params.gff} }
 
 // Channels  
