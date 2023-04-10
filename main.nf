@@ -16,11 +16,11 @@ def helpMsg() {
    Mandatory Arguments:         
     --indir                 Path to directory containing input data 
 
-   Input data:   [Will look for data in directory specified in --indir by default, one or more of following 
-               need to be specified by glob pattern (e.g. --reads "rawReads/*_{R1,R2}.fastq.gz") if in a 
-               different directory, a subdirectory, or in case of error in finding the data (glob pattern mismatch)]
+   Input data:      [Will look for data in directory specified in --indir by default, one or more of following 
+                    need to be specified if in a different directory, a subdirectory, or in case of error in 
+                    finding the data (glob pattern mismatch)]
 
-    --reads                 Paired-end reads
+    --reads                 Paired-end reads (glob pattern, e.g. "rawReads/*_{R1,R2}.fastq.gz")
     --cdna                  Reference cDNA file
     --fasta                 Reference genome fasta file
     --gff                   Reference genome GFF file

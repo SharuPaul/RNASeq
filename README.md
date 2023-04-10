@@ -70,5 +70,4 @@ Run the pipeline using this command:
 nextflow run main.nf --indir <input data directory> -profile <nextflow profile(s)>
 ```
 
-The program will look for input data in directory specified by --indir by default. If some data is in a different folder or a subfolder, and it cannot be located automatically, then you can specify that using the appropriate arguments (reads, cdna, fasta, gff) and a glob pattern. You can also supply prebuilt indexes for salmon and hisat.
- 
+You can also supply prebuilt indexes for salmon and hisat, and use any nextflow arguments. The program will look for input data in directory specified by --indir by default. If some data is in a different folder or a subfolder, and it cannot be located automatically, then you can specify that using the appropriate arguments (reads, cdna, fasta, gff).
