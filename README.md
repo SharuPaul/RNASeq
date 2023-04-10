@@ -4,11 +4,11 @@ A pipeline for RNASeq analysis on paired-end reads implemented with NextFlow dsl
 
 ## Workflow
 1. Fastqc - Quality Check
-2. Trim_galore - Adapter trimming - trimmed reads are used for the rest of the workflow
+2. Trim_galore - Adapter trimming and fastqc - trimmed reads are used for the rest of the workflow
 3. Salmon - Index building and quantification
 4. Hisat2 - Index building and Alignment
-5. Samtools - Sam to Bam conversion, generate stats report with flagstat
-6. FeatureCounts - Counts Genes, mRNAs, Genes with MultiMapping reads
+5. Samtools - sam to bam conversion, generate stats report with flagstat
+6. FeatureCounts - Count genes, mRNAs, and genes with multi-mapping reads
 7. Multiqc - Generate a multiqc report
 
 
