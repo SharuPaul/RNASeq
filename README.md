@@ -42,7 +42,7 @@ Usage:
                     need to be specified if in a different directory, a subdirectory, or in case of error in 
                     finding the data (glob pattern mismatch)]
 
-    --reads                 Paired-end reads
+    --reads                 Paired-end reads (glob pattern, e.g. "rawReads/*_{R1,R2}.fastq.gz")
     --cdna                  Reference cDNA file
     --fasta                 Reference genome fasta file
     --gff                   Reference genome GFF file
@@ -61,7 +61,7 @@ Usage:
     -profile                Nextflow profiles available: singularity, docker, slurm
     -resume                 Resume last run
 
-    --help                  Print this help statement 
+    --help                  Print this help statement   
 ```
 
 Run the pipeline using this command:
@@ -70,4 +70,4 @@ Run the pipeline using this command:
 nextflow run main.nf --indir <input data directory> -profile <nextflow profile(s)>
 ```
 
-You can also supply prebuilt indexes for salmon and hisat, and use any nextflow arguments. The program will look for input data in directory specified by --indir by default. If some data is in a different folder or a subfolder, and it cannot be located automatically, then you can specify that using the appropriate arguments (reads, cdna, fasta, gff).
+Prebuilt indexes for salmon and hisat can be supplied, and addtitional nextflow arguments can also be used. The program will look for input data in directory specified by `--indir` by default. If some data is in a different folder or a subfolder, and it cannot be located automatically, then you can specify that using the appropriate arguments (e.g. `--reads` or `--cdna` ).
