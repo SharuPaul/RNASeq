@@ -8,7 +8,7 @@ process trim_galore {
     tuple val(name), path(reads)
   
    output:
-    tuple val(name), path ("*.fq"), emit: trim_reads
+    tuple val(name), path ("*.fq*"), emit: trim_reads
     path ("*"), emit: trim_fqc
    
    publishDir "${params.outdir}/02_Trim", mode: 'copy', saveAs: { filename ->
