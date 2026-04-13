@@ -28,6 +28,7 @@ def helpMsg() {
    Optional Arguments:    [default value]
     --threads               Number of threads [16]
     --outdir                Output directory name [RNAseq_Results]
+    --do_trim               Run trim_galore on reads [true]
     --trim_args             Additional arguments for trim_galore ["--fastqc"]
     --salmonindex           Path to salmon index. Provide directory containing prebuilt salmon index files 
                             [If not provided, index is built by default]

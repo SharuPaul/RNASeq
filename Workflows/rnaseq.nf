@@ -34,23 +34,28 @@ if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
     reads_ch.collate(4) | fastqc
 
   // Trimming
-    trim_galore(readpairs_ch)
+   if (params.do_trim) {
+     trim_galore(readpairs_ch)
+     workflow_reads_ch = trim_galore.out.trim_reads
+   } else {
+     workflow_reads_ch = readpairs_ch
+   }
 
   // Salmon quantification 
    if (params.salmonindex) {
      pre_salmon_ch = channel.fromPath(params.salmonindex, checkIfExists:true)
-     pre_salmon_ch | combine(trim_galore.out.trim_reads) | salmon_quant
+     pre_salmon_ch | combine(workflow_reads_ch) | salmon_quant
    } else {
-     salmon_index(cdna_ch) | combine(trim_galore.out.trim_reads) | salmon_quant 
+     salmon_index(cdna_ch) | combine(workflow_reads_ch) | salmon_quant 
    }
 
   // Hisat2 Alignment 
    if (params.hisatindex) {
     pre_hisat_ch = channel.fromPath(params.hisatindex, checkIfExists:true)
-    pre_hisat_ch | combine(trim_galore.out.trim_reads) | hisat
+    pre_hisat_ch | combine(workflow_reads_ch) | hisat
    } else {
      hisat_index(genome_ch)  
-     hisat_index.out | combine(trim_galore.out.trim_reads) | hisat 
+     hisat_index.out | combine(workflow_reads_ch) | hisat 
    }  
   
   // Sam to bam and stats
@@ -60,7 +65,11 @@ if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
     samtools.out.read_bam | combine(gff_ch) | (featureCounts_gene & featureCounts_mRNA & featureCounts_geneMult)
 
   // Multiqc    
-    salmon_quant.out | concat(fastqc.out) | concat(trim_galore.out.trim_fqc) | concat(featureCounts_gene.out) | concat(featureCounts_mRNA.out) | concat(featureCounts_geneMult.out) | collect | multiqc
+   if (params.do_trim) {
+     salmon_quant.out | concat(fastqc.out) | concat(trim_galore.out.trim_fqc) | concat(featureCounts_gene.out) | concat(featureCounts_mRNA.out) | concat(featureCounts_geneMult.out) | collect | multiqc
+   } else {
+     salmon_quant.out | concat(fastqc.out) | concat(featureCounts_gene.out) | concat(featureCounts_mRNA.out) | concat(featureCounts_geneMult.out) | collect | multiqc
+   }
 
 }
 
