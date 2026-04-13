@@ -7,7 +7,7 @@ process salmon_index {
     path(cdna)
 
    output:
-    path("*")
+    path("index")
 
     publishDir "${params.outdir}/03_Salmon", mode: 'copy'
 
