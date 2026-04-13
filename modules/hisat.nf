@@ -2,7 +2,7 @@
 
 process hisat_index {
     label "Hisat_index"
-    container = 'nfcore/rnaseq'
+    container 'quay.io/biocontainers/hisat2'
 
    input:
     path(genome)
@@ -23,6 +23,7 @@ process hisat_index {
 
 process hisat {
    label "Hisat2_align"
+   container 'quay.io/biocontainers/hisat2'
    
    input:
     tuple path(index), val(readname), path(read_pairs)
@@ -52,6 +53,7 @@ process hisat {
 
 process samtools {
    label "Samtools"
+   container 'quay.io/biocontainers/samtools'
    
    input:
     path(samfile)

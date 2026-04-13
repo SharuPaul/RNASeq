@@ -2,6 +2,7 @@
 
 process fastqc {
    label 'fastqc'
+   container 'biocontainers/fastqc'
    tag "FASTQC on $reads"
     
    input:

@@ -2,6 +2,7 @@
 
 process multiqc {
    label 'multiqc'
+   container 'quay.io/biocontainers/multiqc'
     
    input:
     path('*')

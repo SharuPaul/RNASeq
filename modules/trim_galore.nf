@@ -3,6 +3,7 @@
 process trim_galore {
     tag "$name"
     label "trim"
+    container 'quay.io/biocontainers/trim-galore'
         
    input:
     tuple val(name), path(reads)

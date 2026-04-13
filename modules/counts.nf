@@ -3,6 +3,7 @@
 process featureCounts_gene {
     tag "${read_bam.simpleName}"
     label 'counts_gene'
+    container 'quay.io/biocontainers/subread'
  
     input: 
      tuple path(read_bam), path(genome_gff)
@@ -23,6 +24,7 @@ process featureCounts_gene {
 process featureCounts_mRNA {
     tag "${read_bam.simpleName}"
     label 'counts_mRNA'
+    container 'quay.io/biocontainers/subread'
  
     input:
      tuple path(read_bam), path(genome_gff)
@@ -43,6 +45,7 @@ process featureCounts_mRNA {
 process featureCounts_geneMult {
     tag "${read_bam.simpleName}"
     label 'counts_Multimap'
+    container 'quay.io/biocontainers/subread'
  
     input:
      tuple path(read_bam), path(genome_gff)

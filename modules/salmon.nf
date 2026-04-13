@@ -2,6 +2,7 @@
 
 process salmon_index { 
     label 'salmon_index'
+    container 'quay.io/biocontainers/salmon'
     
    input:
     path(cdna)
@@ -21,6 +22,7 @@ process salmon_index {
 
 process salmon_quant {
     label 'salmon_quantification'
+    container 'quay.io/biocontainers/salmon'
     tag "$pair_id"
      
    input:
