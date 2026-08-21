@@ -35,6 +35,10 @@ def helpMsg() {
     --sal_quant_args        Additional arguments for salmon quant ["--libType=A --validateMappings"]
     --hisatindex            Path to hisat index. Provide directory containing prebuilt Hisat2 index files 
                             [If not provided, Hisat will build an index by default] 
+    --do_deseq2             Run DESeq2 differential expression analysis [false]
+    --metadata              Sample metadata CSV/TSV for DESeq2. Must include a sample column matching sample names
+    --deseq_design          DESeq2 design formula, e.g. "~ batch + treatment"
+    --deseq_contrast        DESeq2 contrast, e.g. "treatment,treated,control"
     
    Nextflow Arguments: (notice single "-" instead of double "--") 
     -profile                Nextflow profiles available: singularity, docker, slurm

@@ -6,6 +6,7 @@ include { multiqc } from '../modules/multiqc.nf'
 include { trim_galore } from '../modules/trim_galore.nf' 
 include { hisat_index; hisat; samtools } from '../modules/hisat.nf'
 include { featureCounts_gene; featureCounts_mRNA; featureCounts_geneMult } from '../modules/counts.nf'
+include { deseq2_from_featurecounts } from '../modules/deseq2.nf'
 
 
 // Complete RNASeq Workflow
@@ -63,6 +64,23 @@ if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
  
   // Counts   
     samtools.out.read_bam | combine(gff_ch) | (featureCounts_gene & featureCounts_mRNA & featureCounts_geneMult)
+
+  // Differential expression
+   if (params.do_deseq2) {
+     if (!params.metadata) {
+       error "DESeq2 requires --metadata when --do_deseq2 is true"
+     }
+     if (!params.deseq_design) {
+       error "DESeq2 requires --deseq_design when --do_deseq2 is true"
+     }
+     if (!params.deseq_contrast) {
+       error "DESeq2 requires --deseq_contrast when --do_deseq2 is true"
+     }
+
+     metadata_ch = channel.fromPath(params.metadata, checkIfExists:true)
+     gene_counts_ch = featureCounts_gene.out.flatten().filter { count_file -> count_file.name.endsWith('_genecounts.txt') }
+     deseq2_from_featurecounts(gene_counts_ch.collect(), metadata_ch, params.deseq_design, params.deseq_contrast)
+   }
 
   // Multiqc    
    if (params.do_trim) {
