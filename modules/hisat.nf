@@ -16,7 +16,7 @@ process hisat_index {
     """
     mkdir hisat2_index
     proc=\$(((`nproc`)))
-    hisat2-build -p \$proc ${genome} hisat2_index/${genome.simpleName}
+    hisat2-build -p \$proc ${params.hisat_index_args} ${genome} hisat2_index/${genome.simpleName}
     """
 
 }
@@ -42,10 +42,12 @@ process hisat {
      }
 
    script:
+    def mode = params.mode.toString().toLowerCase().replace('-', '_')
+    def read_args = mode == 'paired_end' ? "-1 ${read_pairs[0]} -2 ${read_pairs[1]}" : "-U ${read_pairs}"
     """
     INDEX=`find -L ./ -name "*.1.ht2" | sed 's/\\.1.ht2\$//'`
     proc=\$(((`nproc`)))
-    hisat2 -p \$proc -x \$INDEX -1 ${read_pairs[0]} -2 ${read_pairs[1]} -S ${readname}.sam &> ${readname}.log
+    hisat2 -p \$proc ${params.hisat_args} -x \$INDEX ${read_args} -S ${readname}.sam &> ${readname}.log
     """
  
 }
