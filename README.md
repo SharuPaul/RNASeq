@@ -78,7 +78,9 @@ Usage:
     --sal_quant_args       Required when Salmon is enabled. Include library type and other Salmon quant options
     --metadata             Required when --do_deseq2 true. Sample metadata CSV/TSV with a sample column
     --deseq_design         Required when --do_deseq2 true. DESeq2 design formula, e.g. "~ batch + treatment"
-    --deseq_contrast       Required when --do_deseq2 true. DESeq2 contrast, e.g. "treatment,treated,control"
+    --deseq_contrast       Required when --do_deseq2 true unless --deseq_contrast_file is provided. One or more
+                            DESeq2 contrasts separated by semicolons, e.g. "treatment,treated,control;treatment,dose2,control"
+    --deseq_contrast_file  Required when --do_deseq2 true unless --deseq_contrast is provided. One contrast per line
 
    Optional Arguments:    [default value]
     --threads               Number of threads [16]
@@ -186,7 +188,7 @@ nextflow run main.nf --mode quantseq --indir <input data directory> -profile <ne
 ```
 
 ## Differential expression
-DESeq2 can be enabled after gene counting by providing sample metadata, a design formula, and a contrast:
+DESeq2 can be enabled after gene counting by providing sample metadata, a design formula, and one or more contrasts:
 
 ```
 nextflow run main.nf --mode paired_end --indir <input data directory> -profile <nextflow profile(s)> \
@@ -207,7 +209,7 @@ nextflow run main.nf --mode paired_end --indir <input data directory> -profile <
   --do_deseq2 true \
   --metadata samples.csv \
   --deseq_design "~ batch + treatment" \
-  --deseq_contrast "treatment,treated,control"
+  --deseq_contrast "treatment,treated,control;treatment,dose2,control"
 ```
 
 The metadata file may be CSV or TSV and must include a `sample` column. Additional columns can be used in the design formula as experimental conditions or covariates:
@@ -220,4 +222,30 @@ sample3,treated,batch1,day0
 sample4,treated,batch2,day0
 ```
 
+Contrasts can also be provided in a file with one contrast per line. Blank lines and lines beginning with `#` are ignored:
+
+```
+# variable,numerator,denominator
+treatment,treated,control
+treatment,dose2,control
+```
+
+Then use:
+
+```
+--deseq_contrast_file contrasts.txt
+```
+
 Sample names must match the names produced from the read input. DESeq2 results are written to `06_DifferentialExpression` inside the output directory.
+
+DESeq2 outputs:
+
+```
+gene_count_matrix.tsv
+deseq2_results_<variable>_<numerator>_<denominator>.tsv
+deseq2_normalized_counts.tsv
+deseq2_vst_counts.tsv
+deseq2_pca.pdf
+deseq2_ma_plot_<variable>_<numerator>_<denominator>.pdf
+deseq2_session_info.txt
+```

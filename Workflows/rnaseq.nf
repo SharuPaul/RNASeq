@@ -175,13 +175,46 @@ if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
      if (!params.deseq_design) {
        error "DESeq2 requires --deseq_design when --do_deseq2 is true"
      }
-     if (!params.deseq_contrast) {
-       error "DESeq2 requires --deseq_contrast when --do_deseq2 is true"
+     has_inline_contrast = params.deseq_contrast != null && params.deseq_contrast.toString().trim()
+     has_contrast_file = params.deseq_contrast_file != null && params.deseq_contrast_file.toString().trim()
+
+     if (has_inline_contrast && has_contrast_file) {
+       error "DESeq2 accepts either --deseq_contrast or --deseq_contrast_file, not both"
+     }
+     if (!has_inline_contrast && !has_contrast_file) {
+       error "DESeq2 requires --deseq_contrast or --deseq_contrast_file when --do_deseq2 is true"
+     }
+
+     deseq_contrasts = params.deseq_contrast
+     if (has_contrast_file) {
+       contrast_file = file(params.deseq_contrast_file)
+       if (!contrast_file.exists()) {
+         error "DESeq2 contrast file not found: ${params.deseq_contrast_file}"
+       }
+
+       raw_contrast_lines = contrast_file.text.readLines()
+       contrast_lines = raw_contrast_lines
+         .withIndex()
+         .collect { line, index -> [number: index + 1, text: line.trim()] }
+         .findAll { line -> line.text && !line.text.startsWith('#') }
+
+       if (contrast_lines.isEmpty()) {
+         error "DESeq2 contrast file has no contrast lines: ${params.deseq_contrast_file}"
+       }
+
+       contrast_lines.each { line ->
+         contrast_parts = line.text.split(',').collect { part -> part.trim() }
+         if (contrast_parts.size() != 3 || contrast_parts.any { part -> !part }) {
+           error "Invalid DESeq2 contrast at ${params.deseq_contrast_file}:${line.number}. Use variable,numerator,denominator"
+         }
+       }
+
+       deseq_contrasts = contrast_lines.collect { line -> line.text }.join(';')
      }
 
      metadata_ch = channel.fromPath(params.metadata, checkIfExists:true)
      gene_counts_ch = featureCounts_gene.out.flatten().filter { count_file -> count_file.name.endsWith('_genecounts.txt') }
-     deseq2_from_featurecounts(gene_counts_ch.collect(), metadata_ch, params.deseq_design, params.deseq_contrast)
+     deseq2_from_featurecounts(gene_counts_ch.collect(), metadata_ch, params.deseq_design, deseq_contrasts)
    }
 
   // Multiqc    

@@ -84,11 +84,11 @@ process deseq2 {
     val(contrast)
 
     output:
-    path('deseq2_results.tsv'), emit: results
+    path('deseq2_results_*.tsv'), emit: results
     path('deseq2_normalized_counts.tsv'), emit: normalized_counts
     path('deseq2_vst_counts.tsv'), emit: vst_counts
     path('deseq2_pca.pdf'), emit: pca
-    path('deseq2_ma_plot.pdf'), emit: ma_plot
+    path('deseq2_ma_plot_*.pdf'), emit: ma_plot
     path('deseq2_session_info.txt'), emit: session_info
 
     publishDir "${params.outdir}/06_DifferentialExpression", mode: 'copy'
@@ -124,15 +124,32 @@ process deseq2 {
       )
     }
 
-    contrast_parts <- trimws(strsplit(contrast_spec, ",", fixed = TRUE)[[1]])
+    contrast_entries <- trimws(strsplit(contrast_spec, ";", fixed = TRUE)[[1]])
+    contrast_entries <- contrast_entries[contrast_entries != ""]
 
-    if (length(contrast_parts) != 3 || any(contrast_parts == "")) {
-      stop("Contrast must use the format 'variable,numerator,denominator'.")
+    if (length(contrast_entries) == 0) {
+      stop("At least one contrast is required.")
     }
 
-    contrast_variable <- contrast_parts[[1]]
-    numerator_level <- contrast_parts[[2]]
-    denominator_level <- contrast_parts[[3]]
+    parse_contrast <- function(contrast_entry) {
+      contrast_parts <- trimws(strsplit(contrast_entry, ",", fixed = TRUE)[[1]])
+
+      if (length(contrast_parts) != 3 || any(contrast_parts == "")) {
+        stop("Each contrast must use the format 'variable,numerator,denominator'. Invalid contrast: ", contrast_entry)
+      }
+
+      contrast_parts
+    }
+
+    contrasts <- lapply(contrast_entries, parse_contrast)
+
+    make_safe_name <- function(values) {
+      safe_name <- paste(values, collapse = "_")
+      safe_name <- gsub("[^A-Za-z0-9_.-]+", "_", safe_name)
+      safe_name <- gsub("_+", "_", safe_name)
+      safe_name <- gsub("^_|_$", "", safe_name)
+      safe_name
+    }
 
     count_table <- read_delimited(count_matrix_file)
 
@@ -176,19 +193,6 @@ process deseq2 {
       }
     }
 
-    if (!contrast_variable %in% names(sample_metadata)) {
-      stop("Contrast variable is absent from metadata: ", contrast_variable)
-    }
-
-    if (!all(c(numerator_level, denominator_level) %in% levels(sample_metadata[[contrast_variable]]))) {
-      stop("Contrast levels are absent from metadata column ", contrast_variable)
-    }
-
-    sample_metadata[[contrast_variable]] <- relevel(
-      sample_metadata[[contrast_variable]],
-      ref = denominator_level
-    )
-
     design <- as.formula(design_formula)
     missing_design_variables <- setdiff(all.vars(design), names(sample_metadata))
 
@@ -196,8 +200,31 @@ process deseq2 {
       stop("Design variables missing from metadata: ", paste(missing_design_variables, collapse = ", "))
     }
 
-    if (!contrast_variable %in% all.vars(design)) {
-      stop("Contrast variable must be present in the DESeq2 design formula.")
+    for (contrast_parts in contrasts) {
+      contrast_variable <- contrast_parts[[1]]
+      numerator_level <- contrast_parts[[2]]
+      denominator_level <- contrast_parts[[3]]
+
+      if (!contrast_variable %in% names(sample_metadata)) {
+        stop("Contrast variable is absent from metadata: ", contrast_variable)
+      }
+
+      if (!contrast_variable %in% all.vars(design)) {
+        stop("Contrast variable must be present in the DESeq2 design formula: ", contrast_variable)
+      }
+
+      if (!is.factor(sample_metadata[[contrast_variable]])) {
+        sample_metadata[[contrast_variable]] <- factor(sample_metadata[[contrast_variable]])
+      }
+
+      if (!all(c(numerator_level, denominator_level) %in% levels(sample_metadata[[contrast_variable]]))) {
+        stop("Contrast levels are absent from metadata column ", contrast_variable)
+      }
+
+      sample_metadata[[contrast_variable]] <- relevel(
+        sample_metadata[[contrast_variable]],
+        ref = denominator_level
+      )
     }
 
     dds <- DESeqDataSetFromMatrix(
@@ -212,22 +239,30 @@ process deseq2 {
     }
 
     dds <- DESeq(dds)
-    result <- results(dds, contrast = contrast_parts)
-    result_table <- as.data.frame(result)
-    result_table <- data.frame(
-      gene_id = rownames(result_table),
-      result_table,
-      check.names = FALSE
-    )
-    result_table <- result_table[order(result_table[["padj"]], na.last = TRUE), , drop = FALSE]
 
-    write.table(
-      result_table,
-      file = "deseq2_results.tsv",
-      sep = "\\t",
-      quote = FALSE,
-      row.names = FALSE
-    )
+    for (contrast_parts in contrasts) {
+      contrast_name <- make_safe_name(contrast_parts)
+      result <- results(dds, contrast = contrast_parts)
+      result_table <- as.data.frame(result)
+      result_table <- data.frame(
+        gene_id = rownames(result_table),
+        result_table,
+        check.names = FALSE
+      )
+      result_table <- result_table[order(result_table[["padj"]], na.last = TRUE), , drop = FALSE]
+
+      write.table(
+        result_table,
+        file = paste0("deseq2_results_", contrast_name, ".tsv"),
+        sep = "\\t",
+        quote = FALSE,
+        row.names = FALSE
+      )
+
+      pdf(paste0("deseq2_ma_plot_", contrast_name, ".pdf"))
+      plotMA(result, ylim = c(-5, 5), main = paste(contrast_parts, collapse = " "))
+      dev.off()
+    }
 
     normalized_counts <- counts(dds, normalized = TRUE)
     normalized_counts <- data.frame(
@@ -260,12 +295,9 @@ process deseq2 {
       row.names = FALSE
     )
 
+    pca_groups <- unique(vapply(contrasts, function(contrast_parts) contrast_parts[[1]], character(1)))
     pdf("deseq2_pca.pdf")
-    print(plotPCA(vst, intgroup = contrast_variable))
-    dev.off()
-
-    pdf("deseq2_ma_plot.pdf")
-    plotMA(result, ylim = c(-5, 5))
+    print(plotPCA(vst, intgroup = pca_groups))
     dev.off()
 
     capture.output(sessionInfo(), file = "deseq2_session_info.txt")

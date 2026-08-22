@@ -55,7 +55,9 @@ def helpMsg() {
     --sal_quant_args       Required when Salmon is enabled. Include library type and other Salmon quant options
     --metadata             Required when --do_deseq2 true. Sample metadata CSV/TSV with a sample column
     --deseq_design         Required when --do_deseq2 true. DESeq2 design formula, e.g. "~ batch + treatment"
-    --deseq_contrast       Required when --do_deseq2 true. DESeq2 contrast, e.g. "treatment,treated,control"
+    --deseq_contrast       Required when --do_deseq2 true unless --deseq_contrast_file is provided. One or more
+                            DESeq2 contrasts separated by semicolons, e.g. "treatment,treated,control;treatment,dose2,control"
+    --deseq_contrast_file  Required when --do_deseq2 true unless --deseq_contrast is provided. One contrast per line
 
    Optional Arguments:    [default value]
     --threads               Number of threads [16]
