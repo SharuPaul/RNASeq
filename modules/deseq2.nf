@@ -147,7 +147,7 @@ process deseq2 {
       safe_name <- paste(values, collapse = "_")
       safe_name <- gsub("[^A-Za-z0-9_.-]+", "_", safe_name)
       safe_name <- gsub("_+", "_", safe_name)
-      safe_name <- gsub("^_|_$", "", safe_name)
+      safe_name <- gsub("^_|_\$", "", safe_name)
       safe_name
     }
 
