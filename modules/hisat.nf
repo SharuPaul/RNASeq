@@ -2,7 +2,7 @@
 
 process hisat_index {
     label "Hisat_index"
-    container 'quay.io/biocontainers/hisat2'
+    container 'quay.io/biocontainers/hisat2:2.2.3--h8471819_0'
 
    input:
     path(genome)
@@ -23,7 +23,7 @@ process hisat_index {
 
 process hisat {
    label "Hisat2_align"
-   container 'quay.io/biocontainers/hisat2'
+   container 'quay.io/biocontainers/hisat2:2.2.3--h8471819_0'
    
    input:
     tuple path(index), val(readname), path(read_pairs)
@@ -56,7 +56,7 @@ process hisat {
 
 process samtools {
    label "Samtools"
-   container 'quay.io/biocontainers/samtools'
+   container 'quay.io/biocontainers/samtools:1.7--h91fe0ab_3'
    
    input:
     path(samfile)

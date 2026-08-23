@@ -3,7 +3,7 @@
 process featureCounts_gene {
     tag "${read_bam.simpleName}"
     label 'counts_gene'
-    container 'quay.io/biocontainers/subread'
+    container 'quay.io/biocontainers/subread:2.1.1--h577a1d6_0'
  
     input: 
      tuple path(read_bam), path(genome_gff), val(strandedness_gate)

@@ -3,7 +3,7 @@
 process trim_galore {
     tag "$name"
     label "trim"
-    container 'quay.io/biocontainers/trim-galore'
+    container 'quay.io/biocontainers/trim-galore:2.3.0--hf1b6044_0'
         
    input:
     tuple val(name), path(reads)

@@ -2,7 +2,7 @@
 
 process salmon_index { 
     label 'salmon_index'
-    container 'quay.io/biocontainers/salmon'
+    container 'quay.io/biocontainers/salmon:2.5.1--hfa8f182_0'
     
    input:
     path(cdna)
@@ -22,7 +22,7 @@ process salmon_index {
 
 process salmon_quant {
     label 'salmon_quantification'
-    container 'quay.io/biocontainers/salmon'
+    container 'quay.io/biocontainers/salmon:2.5.1--hfa8f182_0'
     tag "$pair_id"
      
    input:
@@ -44,7 +44,7 @@ process salmon_quant {
 
 process salmon_infer_strandedness {
     label 'salmon_strandedness'
-    container 'quay.io/biocontainers/salmon'
+    container 'quay.io/biocontainers/salmon:2.5.1--hfa8f182_0'
     tag "$sample_id"
 
    input:
