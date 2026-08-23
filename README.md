@@ -57,7 +57,7 @@ Usage:
                             Fail before FeatureCounts if Salmon inference disagrees with --featurecounts_strand: true or false
     --do_salmon            Run Salmon quantification: true or false
     --do_deseq2            Run DESeq2 differential expression analysis: true or false
-    --hisat_args           HISAT2 alignment arguments. Pass "" if no extra options are intended
+    --hisat_args           HISAT2 alignment arguments.
     --featurecounts_strand FeatureCounts strandedness: 0 unstranded, 1 stranded, 2 reversely stranded
     --featurecounts_gene_type
                             Annotation feature type for gene counts, e.g. gene or exon
@@ -66,15 +66,15 @@ Usage:
     --featurecounts_attribute
                             Annotation attribute used as the count ID, e.g. ID or gene_id
     --featurecounts_extra_args
-                            Extra FeatureCounts arguments. Pass "" if no extra options are intended
+                            Extra FeatureCounts arguments.
 
    Conditional Arguments:
     --trim_args            Required when --do_trim true in paired_end mode
     --quant_trim_args      Required when --do_trim true in quantseq mode unless --trim_args is provided
     --strandedness_salmon_args
                             Required when --check_strandedness true. Extra Salmon args for inference, e.g. "--validateMappings"
-    --hisat_index_args     Required when --hisatindex is not provided. Pass "" if no extra options are intended
-    --salmon_index_args    Required when Salmon is enabled and --salmonindex is not provided. Pass "" if no extra options are intended
+    --hisat_index_args     Required when --hisatindex is not provided.
+    --salmon_index_args    Required when Salmon is enabled and --salmonindex is not provided.
     --sal_quant_args       Required when Salmon is enabled. Include library type and other Salmon quant options
     --metadata             Required when --do_deseq2 true. Sample metadata CSV/TSV with a sample column
     --deseq_design         Required when --do_deseq2 true. DESeq2 design formula, e.g. "~ batch + treatment"
@@ -120,7 +120,7 @@ nextflow run main.nf --mode paired_end --indir <input data directory> -profile <
 
 Prebuilt indexes for salmon and hisat can be supplied, and addtitional nextflow arguments can also be used. The program will look for input data in directory specified by `--indir` by default. If some data is in a different folder or a subfolder, and it cannot be located automatically, then you can specify that using the appropriate arguments (e.g. `--reads` or `--cdna` ).
 
-Tool arguments that affect biological interpretation are intentionally required. If a tool should use no extra arguments for a dataset, pass an empty quoted string such as `--hisat_args ""` or set the value to `''` in a Nextflow config file.
+Tool arguments that affect biological interpretation are intentionally required.
 
 ## Annotation style
 Annotation style means the feature names and attributes used inside the genome annotation file. FeatureCounts uses `-t` to choose which feature rows to count and `-g` to choose which attribute groups those rows into a count ID.
@@ -176,14 +176,10 @@ nextflow run main.nf --mode quantseq --indir <input data directory> -profile <ne
   --strandedness_salmon_args "--validateMappings" \
   --strandedness_fail_on_mismatch true \
   --do_salmon false \
-  --salmon_index_args "" \
-  --hisat_index_args "" \
-  --hisat_args "" \
   --featurecounts_strand 2 \
   --featurecounts_gene_type gene \
   --featurecounts_mrna_type mRNA \
   --featurecounts_attribute ID \
-  --featurecounts_extra_args "" \
   --do_deseq2 false
 ```
 
@@ -197,15 +193,11 @@ nextflow run main.nf --mode paired_end --indir <input data directory> -profile <
   --check_strandedness false \
   --strandedness_fail_on_mismatch true \
   --do_salmon true \
-  --salmon_index_args "" \
   --sal_quant_args "--libType=A --validateMappings" \
-  --hisat_index_args "" \
-  --hisat_args "" \
   --featurecounts_strand 0 \
   --featurecounts_gene_type gene \
   --featurecounts_mrna_type mRNA \
   --featurecounts_attribute ID \
-  --featurecounts_extra_args "" \
   --do_deseq2 true \
   --metadata samples.csv \
   --deseq_design "~ batch + treatment" \
