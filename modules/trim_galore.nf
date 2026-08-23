@@ -30,6 +30,7 @@ process trim_galore {
     def mode = params.mode.toString().toLowerCase().replace('-', '_')
     def trim_mode = mode == 'paired_end' ? '--paired' : ''
     def trim_args = mode == 'quantseq' && params.quant_trim_args != null ? params.quant_trim_args : params.trim_args
+    def read_args = reads instanceof List ? reads.join(' ') : reads
     """
     mkdir trimmed_reads trim_qc
     proc=\$(((`nproc`)))
@@ -38,7 +39,7 @@ process trim_galore {
     elif ((\$proc > 8)); then ncores=2
     else ncores=1
     fi
-    trim_galore --cores \$ncores ${trim_args} ${trim_mode} ${reads}
+    trim_galore --cores \$ncores ${trim_args} ${trim_mode} ${read_args}
     find . -maxdepth 1 -type f \\( -name '*_val_*.fq*' -o -name '*_trimmed.fq*' \\) -exec mv {} trimmed_reads/ \\;
     find . -maxdepth 1 -type f \\( -name '*trimming_report.txt' -o -name '*_fastqc.zip' -o -name '*_fastqc.html' \\) -exec mv {} trim_qc/ \\;
     """

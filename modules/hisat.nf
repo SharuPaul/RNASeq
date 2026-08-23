@@ -43,7 +43,8 @@ process hisat {
 
    script:
     def mode = params.mode.toString().toLowerCase().replace('-', '_')
-    def read_args = mode == 'paired_end' ? "-1 ${read_pairs[0]} -2 ${read_pairs[1]}" : "-U ${read_pairs}"
+    def single_read = read_pairs instanceof List ? read_pairs[0] : read_pairs
+    def read_args = mode == 'paired_end' ? "-1 ${read_pairs[0]} -2 ${read_pairs[1]}" : "-U ${single_read}"
     """
     INDEX=`find -L ./ -name "*.1.ht2" | sed 's/\\.1.ht2\$//'`
     proc=\$(((`nproc`)))

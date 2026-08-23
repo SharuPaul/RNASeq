@@ -35,7 +35,8 @@ process salmon_quant {
 
    script:
     def mode = params.mode.toString().toLowerCase().replace('-', '_')
-    def read_args = mode == 'paired_end' ? "-1 ${reads[0]} -2 ${reads[1]}" : "-r ${reads}"
+    def single_read = reads instanceof List ? reads[0] : reads
+    def read_args = mode == 'paired_end' ? "-1 ${reads[0]} -2 ${reads[1]}" : "-r ${single_read}"
     """
     salmon quant ${params.sal_quant_args} -i $index ${read_args} -o ${pair_id}_quant
     """
@@ -58,7 +59,8 @@ process salmon_infer_strandedness {
 
    script:
     def mode = params.mode.toString().toLowerCase().replace('-', '_')
-    def read_args = mode == 'paired_end' ? "-1 ${reads[0]} -2 ${reads[1]}" : "-r ${reads}"
+    def single_read = reads instanceof List ? reads[0] : reads
+    def read_args = mode == 'paired_end' ? "-1 ${reads[0]} -2 ${reads[1]}" : "-r ${single_read}"
     def fail_on_mismatch = params.strandedness_fail_on_mismatch.toString().toLowerCase() in ['true', '1', 'yes', 'y'] ? 'true' : 'false'
     """
     proc=\$(((`nproc`)))

@@ -8,6 +8,25 @@ include { hisat_index; hisat; samtools } from '../modules/hisat.nf'
 include { featureCounts_gene; featureCounts_mRNA; featureCounts_geneMult } from '../modules/counts.nf'
 include { deseq2_from_featurecounts } from '../modules/deseq2.nf'
 
+def require_param(value, name, help_text = null) {
+  if (value == null) {
+    throw new IllegalArgumentException("Missing required argument --${name}" + (help_text ? ". ${help_text}" : ""))
+  }
+}
+
+def to_boolean(value, name) {
+  require_param(value, name, "Use true or false")
+  if (value instanceof Boolean) {
+    return value
+  }
+
+  def normalized_value = value.toString().toLowerCase()
+  if (!['true', 'false', '1', '0', 'yes', 'no', 'y', 'n'].contains(normalized_value)) {
+    throw new IllegalArgumentException("Invalid --${name} '${value}'. Use true or false")
+  }
+
+  return normalized_value in ['true', '1', 'yes', 'y']
+}
 
 // Complete RNASeq Workflow
 
@@ -22,23 +41,6 @@ if (!['paired_end', 'quantseq'].contains(mode)) {
 }
 
 is_paired_end = mode == 'paired_end'
-require_param = { value, name, help_text = null ->
-  if (value == null) {
-    error "Missing required argument --${name}" + (help_text ? ". ${help_text}" : "")
-  }
-}
-
-to_boolean = { value, name ->
-  require_param(value, name, "Use true or false")
-  if (value instanceof Boolean) {
-    return value
-  }
-  def normalized_value = value.toString().toLowerCase()
-  if (!['true', 'false', '1', '0', 'yes', 'no', 'y', 'n'].contains(normalized_value)) {
-    error "Invalid --${name} '${value}'. Use true or false"
-  }
-  return normalized_value in ['true', '1', 'yes', 'y']
-}
 
 do_trim = to_boolean(params.do_trim, 'do_trim')
 do_salmon = to_boolean(params.do_salmon, 'do_salmon')
