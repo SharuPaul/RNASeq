@@ -160,13 +160,15 @@ if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
     samtools(hisat.out.read_sam)
  
   // Counts
-   counts_input_ch = samtools.out.read_bam.combine(gff_ch)
-   if (check_strandedness) {
-     strandedness_gate_ch = salmon_infer_strandedness.out.report.collect()
-     counts_input_ch = counts_input_ch.combine(strandedness_gate_ch).map { read_bam, genome_gff, strandedness_gate -> tuple(read_bam, genome_gff, 'checked') }
-   } else {
-     counts_input_ch = counts_input_ch.map { read_bam, genome_gff -> tuple(read_bam, genome_gff, 'not_checked') }
-   }
+   counts_input_ch = samtools.out.read_bam
+    .combine(gff_ch)
+    .map { read_bam, genome_gff ->
+        tuple(
+            read_bam,
+            genome_gff,
+            check_strandedness ? 'checked' : 'not_checked'
+        )
+    }
    counts_input_ch | (featureCounts_gene & featureCounts_mRNA & featureCounts_geneMult)
 
   // Differential expression
@@ -230,8 +232,13 @@ if (!params.gff) { gff = "${params.indir}/*.{gff,gff.gz}"
    if (do_trim) {
      multiqc_ch = multiqc_ch.concat(trim_galore.out.trim_fqc)
    }
-
-   multiqc_ch.concat(featureCounts_gene.out).concat(featureCounts_mRNA.out).concat(featureCounts_geneMult.out).collect() | multiqc
+   multiqc_ch = multiqc_ch
+    .concat(hisat.out.hisat_logs)
+    .concat(samtools.out.stats)
+    .concat(featureCounts_gene.out)
+    .concat(featureCounts_mRNA.out)
+    .concat(featureCounts_geneMult.out)
+   multiqc_ch.collect() | multiqc
 
 }
 

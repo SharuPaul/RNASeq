@@ -85,13 +85,20 @@ process deseq2 {
 
     output:
     path('deseq2_results_*.tsv'), emit: results
+    path('deseq2_summary_*.tsv'), emit: summary
     path('deseq2_normalized_counts.tsv'), emit: normalized_counts
     path('deseq2_vst_counts.tsv'), emit: vst_counts
     path('deseq2_pca.pdf'), emit: pca
     path('deseq2_ma_plot_*.pdf'), emit: ma_plot
     path('deseq2_session_info.txt'), emit: session_info
 
-    publishDir "${params.outdir}/06_DifferentialExpression", mode: 'copy'
+    publishDir {
+    def d = design_formula
+        .replaceAll(/[^A-Za-z0-9]+/, '_')
+        .replaceAll(/^_+|_+$/, '')
+
+    "${params.outdir}/06_DifferentialExpression/${d}"
+    }, mode: 'copy'
 
     script:
     """
@@ -259,6 +266,26 @@ process deseq2 {
         row.names = FALSE
       )
 
+      sig <- !is.na(result_table\$padj) & result_table\$padj < 0.05
+      sig_fc <- sig & abs(result_table\$log2FoldChange) >= 1
+
+      summary_table <- data.frame(
+        contrast = contrast_name,
+        genes_tested = sum(!is.na(result_table\$pvalue)),
+        significant_padj_0.05 = sum(sig),
+        significant_padj_0.05_log2FC_1 = sum(sig_fc),
+        upregulated = sum(sig_fc & result_table\$log2FoldChange > 0),
+        downregulated = sum(sig_fc & result_table\$log2FoldChange < 0)
+      )
+
+      write.table(
+        summary_table,
+        file = paste0("deseq2_summary_", contrast_name, ".tsv"),
+        sep = "\t",
+        quote = FALSE,
+        row.names = FALSE
+      )
+
       pdf(paste0("deseq2_ma_plot_", contrast_name, ".pdf"))
       plotMA(result, ylim = c(-5, 5), main = paste(contrast_parts, collapse = " "))
       dev.off()
@@ -318,6 +345,7 @@ workflow deseq2_from_featurecounts {
 
     emit:
     count_matrix = merge_featurecounts.out.count_matrix
+    summary = deseq2.out.summary
     results = deseq2.out.results
     normalized_counts = deseq2.out.normalized_counts
     vst_counts = deseq2.out.vst_counts
