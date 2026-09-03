@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this pipeline, please cite it."
+title: "RNASeq"
+version: "1.0.0"
+date-released: "2026-09-03"
+authors:
+  - family-names: "Sharma"
+    given-names: "Sharu Paul"
+repository-code: "https://github.com/SharuPaul/RNASeq"

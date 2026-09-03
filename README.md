@@ -264,3 +264,10 @@ gene_count_matrix.tsv
 <design>/deseq2_volcano_<variable>_<numerator>_<denominator>.png
 <design>/deseq2_session_info.txt
 ```
+
+## Citation
+If you use this pipeline, please cite:
+
+Sharu Paul. RNASeq v1.0.0. GitHub: https://github.com/SharuPaul/RNASeq
+
+Citation metadata is also available in `CITATION.cff`.
