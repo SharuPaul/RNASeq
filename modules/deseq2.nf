@@ -89,7 +89,12 @@ process deseq2 {
     path('deseq2_normalized_counts.tsv'), emit: normalized_counts
     path('deseq2_vst_counts.tsv'), emit: vst_counts
     path('deseq2_pca.pdf'), emit: pca
+    path('deseq2_pca_ellipse.pdf'), emit: pca_ellipse
+    path('deseq2_pca_centroid_distances.tsv'), emit: pca_distances
+    path('deseq2_pca_centroids.tsv'), emit: pca_centroids
     path('deseq2_ma_plot_*.pdf'), emit: ma_plot
+    path('deseq2_volcano_*.pdf'), emit: volcano
+    path('deseq2_volcano_*.png'), emit: volcano_png
     path('deseq2_session_info.txt'), emit: session_info
 
     publishDir {
@@ -103,7 +108,10 @@ process deseq2 {
     script:
     """
     Rscript - "${count_matrix}" "${metadata}" "${design_formula}" "${contrast}" <<'RSCRIPT'
-    suppressPackageStartupMessages(library(DESeq2))
+    suppressPackageStartupMessages({
+      library(DESeq2)
+      library(ggplot2)
+    })
 
     args <- commandArgs(trailingOnly = TRUE)
 
@@ -289,6 +297,71 @@ process deseq2 {
       pdf(paste0("deseq2_ma_plot_", contrast_name, ".pdf"))
       plotMA(result, ylim = c(-5, 5), main = paste(contrast_parts, collapse = " "))
       dev.off()
+
+      volcano_df <- result_table[
+        !is.na(result_table[["log2FoldChange"]]) &
+        !is.na(result_table[["padj"]]),
+        ,
+        drop = FALSE
+      ]
+
+      volcano_df[["neglog10_padj"]] <- -log10(
+        pmax(volcano_df[["padj"]], .Machine\$double.xmin)
+      )
+
+      volcano_df[["significant"]] <-
+        volcano_df[["padj"]] < 0.05 &
+        abs(volcano_df[["log2FoldChange"]]) >= 1
+
+      # Squish extreme log2FC values to -10 / +10 for plotting
+      volcano_df[["plot_log2FC"]] <- pmax(
+        pmin(volcano_df[["log2FoldChange"]], 10),
+        -10
+      )
+
+      pdf(paste0("deseq2_volcano_", contrast_name, ".pdf"))
+
+      plot(
+        volcano_df[["plot_log2FC"]],
+        volcano_df[["neglog10_padj"]],
+        pch = 16,
+        cex = 0.5,
+        col = ifelse(volcano_df[["significant"]], "red", "grey60"),
+        xlab = "log2 Fold Change",
+        ylab = "-log10 adjusted p-value",
+        main = paste(contrast_parts, collapse = " "),
+        xlim = c(-10, 10)
+      )
+
+      abline(h = -log10(0.05), lty = 2)
+      abline(v = c(-1, 1), lty = 2)
+
+      dev.off()
+
+      png(
+        paste0("deseq2_volcano_", contrast_name, ".png"),
+        width = 1800,
+        height = 1600,
+        res = 200
+      )
+
+      plot(
+        volcano_df[["plot_log2FC"]],
+        volcano_df[["neglog10_padj"]],
+        pch = 16,
+        cex = 0.5,
+        col = ifelse(volcano_df[["significant"]], "red", "grey60"),
+        xlab = "log2 Fold Change",
+        ylab = "-log10 adjusted p-value",
+        main = paste(contrast_parts, collapse = " "),
+        xlim = c(-10, 10)
+      )
+
+      abline(h = -log10(0.05), lty = 2)
+      abline(v = c(-1, 1), lty = 2)
+
+      dev.off()
+
     }
 
     normalized_counts <- counts(dds, normalized = TRUE)
@@ -327,10 +400,228 @@ process deseq2 {
     print(plotPCA(vst, intgroup = pca_groups))
     dev.off()
 
+    # PCA with treatment ellipses + centroid distances
+    group_var <- pca_groups[[1]]
+
+    # Use the exact same PCA coordinates as DESeq2 plotPCA()
+    pca_data <- plotPCA(
+      vst,
+      intgroup = group_var,
+      returnData = TRUE
+    )
+
+    percent_var <- 100 * attr(pca_data, "percentVar")
+
+    pca_df <- data.frame(
+      sample = rownames(pca_data),
+      PC1 = pca_data[["PC1"]],
+      PC2 = pca_data[["PC2"]],
+      group = pca_data[[group_var]],
+      check.names = FALSE
+    )
+
+    pca_df[["group"]] <- factor(pca_df[["group"]])
+
+    pca_df[["group"]] <- factor(pca_df[["group"]])
+
+
+    # Group centroids
+    centroids <- aggregate(
+      cbind(PC1, PC2) ~ group,
+      data = pca_df, FUN = mean
+    )
+
+    write.table(centroids,
+      file = "deseq2_pca_centroids.tsv",
+      sep = "\t", quote = FALSE, row.names = FALSE
+    )
+
+
+    # Euclidean distance between group centroids
+    centroid_matrix <- as.matrix(
+      centroids[, c("PC1", "PC2"), drop = FALSE]
+    )
+
+    rownames(centroid_matrix) <- as.character(centroids[["group"]])
+
+    centroid_distances <- as.matrix(
+      dist(centroid_matrix, method = "euclidean")
+    )
+
+    distance_table <- as.data.frame(
+      as.table(centroid_distances),
+      stringsAsFactors = FALSE
+    )
+
+    names(distance_table) <- c(
+      "group1",
+      "group2",
+      "euclidean_distance_PC1_PC2"
+    )
+
+    # Keep each pair only once and remove self comparisons
+    group_order <- as.character(centroids[["group"]])
+
+    distance_table[["group1_index"]] <- match(
+      distance_table[["group1"]],
+      group_order
+    )
+
+    distance_table[["group2_index"]] <- match(
+      distance_table[["group2"]],
+      group_order
+    )
+
+    distance_table <- distance_table[
+      distance_table[["group1_index"]] <
+      distance_table[["group2_index"]],
+      ,
+      drop = FALSE
+    ]
+
+    distance_table <- distance_table[
+      ,
+      c(
+        "group1",
+        "group2",
+        "euclidean_distance_PC1_PC2"
+      ),
+      drop = FALSE
+    ]
+
+    distance_table <- distance_table[
+      order(
+        distance_table[["euclidean_distance_PC1_PC2"]],
+        decreasing = TRUE
+      ),
+      ,
+      drop = FALSE
+    ]
+
+    write.table(distance_table,
+      file = "deseq2_pca_centroid_distances.tsv",
+      sep = "\t", quote = FALSE,  row.names = FALSE
+    )
+
+
+    # Choose ellipse vs convex hull based on group size
+    group_sizes <- table(pca_df[["group"]])
+
+    ellipse_groups <- names(group_sizes[group_sizes >= 4])
+    hull_groups <- names(group_sizes[group_sizes >= 3 & group_sizes < 4])
+
+    pca_ellipse_df <- pca_df[
+      pca_df[["group"]] %in% ellipse_groups,
+      ,
+      drop = FALSE
+    ]
+
+    pca_hull_df <- pca_df[
+      pca_df[["group"]] %in% hull_groups,
+      ,
+      drop = FALSE
+    ]
+
+    if (nrow(pca_hull_df) > 0) {
+      pca_hull_df <- do.call(
+        rbind,
+        lapply(
+          split(pca_hull_df, pca_hull_df[["group"]]),
+          function(df) {
+            df[chull(df[["PC1"]], df[["PC2"]]), , drop = FALSE]
+          }
+        )
+      )
+    }
+
+
+    p_ellipse <- ggplot(
+      pca_df,
+      aes(
+        x = PC1,
+        y = PC2,
+        color = group
+      )
+    ) +
+
+      # Convex hull for small groups
+      {
+        if (nrow(pca_hull_df) > 0)
+          geom_polygon(
+            data = pca_hull_df,
+            aes(
+              x = PC1,
+              y = PC2,
+              group = group,
+              fill = group
+            ),
+            alpha = 0.12,
+            color = NA,
+            inherit.aes = FALSE
+          )
+      } +
+
+      # Ellipse for groups with enough samples
+      {
+        if (nrow(pca_ellipse_df) > 0)
+          stat_ellipse(
+            data = pca_ellipse_df,
+            aes(
+              x = PC1,
+              y = PC2,
+              group = group,
+              color = group
+            ),
+            type = "norm",
+            linewidth = 0.8,
+            inherit.aes = FALSE
+          )
+      } +
+
+      # Individual samples
+      geom_point(size = 3) +
+
+      # Group centroids
+      geom_point(
+        data = centroids,
+        aes(
+          x = PC1,
+          y = PC2,
+          color = group
+        ),
+        shape = 4,
+        size = 5,
+        stroke = 1.5,
+        inherit.aes = FALSE
+      ) +
+
+      labs(
+        x = paste0(
+          "PC1: ",
+          round(percent_var[[1]], 1),
+          "% variance"
+        ),
+        y = paste0(
+          "PC2: ",
+          round(percent_var[[2]], 1),
+          "% variance"
+        ),
+        color = group_var,
+        fill = group_var,
+        title = "PCA with group spread and centroids"
+      ) +
+
+      theme_bw()
+
+    ggsave("deseq2_pca_ellipse.pdf",
+      p_ellipse, width = 8, height = 6)
+
     capture.output(sessionInfo(), file = "deseq2_session_info.txt")
     RSCRIPT
     """
 }
+
+
 
 workflow deseq2_from_featurecounts {
     take:
@@ -350,6 +641,11 @@ workflow deseq2_from_featurecounts {
     normalized_counts = deseq2.out.normalized_counts
     vst_counts = deseq2.out.vst_counts
     pca = deseq2.out.pca
+    pca_ellipse = deseq2.out.pca_ellipse
+    pca_distances = deseq2.out.pca_distances
+    pca_centroids = deseq2.out.pca_centroids
     ma_plot = deseq2.out.ma_plot
+    volcano = deseq2.out.volcano
+    volcano_png = deseq2.out.volcano_png
     session_info = deseq2.out.session_info
 }
