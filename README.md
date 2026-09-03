@@ -1,21 +1,21 @@
 # RNASeq
-A pipeline for RNASeq analysis on conventional paired-end reads or single-end QuantSeq reads implemented with NextFlow dsl2.
+A Nextflow DSL2 pipeline for conventional paired-end RNA-seq or single-end QuantSeq reads.
 
 
 ## Workflow
-1. Fastqc - Quality Check
-2. Trim_galore - Adapter trimming and fastqc
+1. FastQC - Quality check
+2. Trim Galore - Adapter trimming and FastQC
 3. Salmon - Optional index building and quantification
-4. Hisat2 - Index building and Alignment
-5. Samtools - sam to bam conversion, generate stats report with flagstat
-6. FeatureCounts - Count genes, mRNAs, and genes with multi-mapping reads with mode-aware paired-end and strandedness settings
+4. HISAT2 - Index building and alignment
+5. SAMtools - SAM to BAM conversion and flagstat report
+6. featureCounts - Gene, mRNA, and multi-mapping counts with mode-aware paired-end and strandedness settings
 7. DESeq2 - Optional differential expression analysis from raw gene counts
-8. Multiqc - Generate a multiqc report
+8. MultiQC - Generate a MultiQC report
 
 
 ## Requirements
 1. Nextflow
-2. Either Singularity or Docker to use containers. If not using containers, these software/modules are needed: fastqc, trimgalore, salmon, hisat2, samtools, subread, multiqc, and bioconductor-deseq2 when running differential expression.
+2. Either Singularity or Docker to use containers. Without containers, these tools are needed: fastqc, trim-galore, salmon, hisat2, samtools, subread, multiqc, and the R packages DESeq2 and ggplot2 when running differential expression.
 3. Git
 
 
@@ -118,9 +118,18 @@ nextflow run main.nf --mode paired_end --indir <input data directory> -profile <
   --do_deseq2 false
 ```
 
-Prebuilt indexes for salmon and hisat can be supplied, and addtitional nextflow arguments can also be used. The program will look for input data in directory specified by `--indir` by default. If some data is in a different folder or a subfolder, and it cannot be located automatically, then you can specify that using the appropriate arguments (e.g. `--reads` or `--cdna` ).
+Prebuilt indexes for Salmon and HISAT2 can be supplied, and additional Nextflow arguments can also be used. The program will look for input data in the directory specified by `--indir` by default. If some data is in a different folder or a subfolder, specify it with the appropriate argument, such as `--reads` or `--cdna`.
 
 Tool arguments that affect biological interpretation are intentionally required.
+
+## Output layout
+- `01_Fastqc`: FastQC reports for input reads
+- `02_Trim`: trimmed reads and Trim Galore/FastQC reports when `--do_trim true`
+- `03_Salmon`: Salmon index, quantification, and strandedness-check files when enabled
+- `04_Hisat2`: HISAT2 index, SAM/BAM files, alignment logs, and SAMtools flagstat reports
+- `05_Counts`: gene, mRNA, and multi-mapping featureCounts results
+- `06_DifferentialExpression`: DESeq2 count matrix and results when `--do_deseq2 true`
+- `multiqc_report.html`, `timeline.html`, and `report.html`: run summaries
 
 ## Annotation style
 Annotation style means the feature names and attributes used inside the genome annotation file. FeatureCounts uses `-t` to choose which feature rows to count and `-g` to choose which attribute groups those rows into a count ID.
@@ -144,7 +153,15 @@ is a common GTF-style gene-count setup.
 ## Modes
 Use `--mode paired_end` for conventional paired-end RNA-seq. This uses paired-end trimming, HISAT2 alignment, and FeatureCounts counting when those steps are explicitly enabled.
 
-Use `--mode quantseq` for single-end QuantSeq data. This uses single-end trimming, HISAT2 `-U` alignment, and FeatureCounts without paired-end counting. Salmon is usually disabled for QuantSeq by setting `--do_salmon false`.
+Use `--mode quantseq` for single-end QuantSeq data. This uses single-end trimming, HISAT2 `-U` alignment, and featureCounts without paired-end counting. If `--reads` is not set, the default QuantSeq read glob is:
+
+```
+<indir>/*.{fq,fastq,fq.gz,fastq.gz}
+```
+
+QuantSeq sample names come from the FASTQ basename after removing `.fq`, `.fastq`, `.fq.gz`, or `.fastq.gz`.
+
+Use `--quant_trim_args` for QuantSeq trimming. If it is not set, `--trim_args` is used. Salmon quantification can run in QuantSeq mode with single-end reads, but it is usually disabled by setting `--do_salmon false`.
 
 For QuantSeq, set `--featurecounts_strand` to match the library strandedness:
 
@@ -154,17 +171,15 @@ For QuantSeq, set `--featurecounts_strand` to match the library strandedness:
 2 = reversely stranded
 ```
 
-You can ask Salmon to check strandedness by setting `--check_strandedness true`. The pipeline runs Salmon with `-l A`, reads Salmon's inferred library type, maps it to the FeatureCounts `-s` value, and can fail before FeatureCounts if it disagrees with `--featurecounts_strand`.
+You can ask Salmon to check strandedness by setting `--check_strandedness true`. This requires `--cdna` or a matching cDNA file under `--indir`. The pipeline runs Salmon with `-l A`, writes strandedness reports under `03_Salmon/Strandedness`, and compares Salmon's inferred library type with `--featurecounts_strand`.
 
-For single-end QuantSeq, the mapping is:
+The Salmon-to-featureCounts mapping is:
 
 ```
-U  -> featureCounts -s 0
-SF -> featureCounts -s 1
-SR -> featureCounts -s 2
+U, IU, OU, MU       -> featureCounts -s 0
+SF, ISF, OSF, MSF  -> featureCounts -s 1
+SR, ISR, OSR, MSR  -> featureCounts -s 2
 ```
-
-For paired-end checks, Salmon formats such as `IU`, `ISF`, and `ISR` map the same way by their final strandedness part.
 
 Example QuantSeq run:
 
@@ -184,7 +199,7 @@ nextflow run main.nf --mode quantseq --indir <input data directory> -profile <ne
 ```
 
 ## Differential expression
-DESeq2 can be enabled after gene counting by providing sample metadata, a design formula, and one or more contrasts:
+DESeq2 can be enabled after gene counting by providing sample metadata, a design formula, and one or more contrasts. It uses the gene-level featureCounts files ending in `_genecounts.txt`.
 
 ```
 nextflow run main.nf --mode paired_end --indir <input data directory> -profile <nextflow profile(s)> \
@@ -228,16 +243,24 @@ Then use:
 --deseq_contrast_file contrasts.txt
 ```
 
-Sample names must match the names produced from the read input. DESeq2 results are written to `06_DifferentialExpression` inside the output directory.
+Sample names must match the names produced from the read input. Metadata samples must be unique. Use either `--deseq_contrast` or `--deseq_contrast_file`, not both.
+
+The merged raw count matrix is written to `06_DifferentialExpression/gene_count_matrix.tsv`. DESeq2 result files are written in a design-specific subfolder, such as `06_DifferentialExpression/batch_treatment`.
 
 DESeq2 outputs:
 
 ```
 gene_count_matrix.tsv
-deseq2_results_<variable>_<numerator>_<denominator>.tsv
-deseq2_normalized_counts.tsv
-deseq2_vst_counts.tsv
-deseq2_pca.pdf
-deseq2_ma_plot_<variable>_<numerator>_<denominator>.pdf
-deseq2_session_info.txt
+<design>/deseq2_results_<variable>_<numerator>_<denominator>.tsv
+<design>/deseq2_summary_<variable>_<numerator>_<denominator>.tsv
+<design>/deseq2_normalized_counts.tsv
+<design>/deseq2_vst_counts.tsv
+<design>/deseq2_pca.pdf
+<design>/deseq2_pca_ellipse.pdf
+<design>/deseq2_pca_centroids.tsv
+<design>/deseq2_pca_centroid_distances.tsv
+<design>/deseq2_ma_plot_<variable>_<numerator>_<denominator>.pdf
+<design>/deseq2_volcano_<variable>_<numerator>_<denominator>.pdf
+<design>/deseq2_volcano_<variable>_<numerator>_<denominator>.png
+<design>/deseq2_session_info.txt
 ```

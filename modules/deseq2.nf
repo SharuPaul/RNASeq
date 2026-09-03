@@ -1,4 +1,4 @@
-// Differential expression with DESeq2 from featureCounts gene counts.
+// Differential expression with DESeq2 
 
 process merge_featurecounts {
     label 'deseq2'
